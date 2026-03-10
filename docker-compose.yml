@@ -1,0 +1,70 @@
+
+services:
+  # MySQL Database
+  database:
+    image: mysql:8.0
+    container_name: secondpage-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-secondpage_root_pass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-secondpage}
+      MYSQL_USER: ${MYSQL_USER:-secondpage_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-secondpage_pass}
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - secondpage-db-data:/var/lib/mysql
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    networks:
+      - secondpage-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-secondpage_root_pass}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  # SecondPage.ai Application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - VITE_APP_ID=${VITE_APP_ID:-secondpage-ai}
+        - VITE_APP_TITLE=${VITE_APP_TITLE:-secondpage.ai - enhanced search}
+        - VITE_APP_LOGO=${VITE_APP_LOGO:-}
+    container_name: secondpage-ai
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=mysql://${MYSQL_USER:-secondpage_user}:${MYSQL_PASSWORD:-secondpage_pass}@database:3306/${MYSQL_DATABASE:-secondpage}
+      - SEARCH_PROVIDER=${SEARCH_PROVIDER:-http}
+      - BRAVE_API_KEY=${BRAVE_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GOOGLE_CSE_ID=${GOOGLE_CSE_ID:-}
+      - VITE_APP_ID=${VITE_APP_ID:-secondpage-ai}
+      - VITE_APP_TITLE=${VITE_APP_TITLE:-secondpage.ai - enhanced search}
+      - VITE_APP_LOGO=${VITE_APP_LOGO:-}
+      - API_KEY=${API_KEY:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - secondpage-network
+
+volumes:
+  secondpage-db-data:
+    driver: local
+
+networks:
+  secondpage-network:
+    driver: bridge

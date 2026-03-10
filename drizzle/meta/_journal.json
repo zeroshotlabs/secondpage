@@ -1,0 +1,20 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1761090498396,
+      "tag": "0000_wise_proemial_gods",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1761090652972,
+      "tag": "0001_glamorous_masked_marvel",
+      "breakpoints": true
+    }
+  ]
+}
