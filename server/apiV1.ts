@@ -29,7 +29,10 @@ const openApiSpec = {
     description: "Search aggregation API — query multiple search engines, rank and deduplicate results using Borda count scoring.",
     version: "1.0.0",
   },
-  servers: [{ url: "/api-v1" }],
+  servers: [
+    { url: "https://secondpage.ai/api-v1", description: "Production" },
+    { url: "/api-v1", description: "Relative" },
+  ],
   security: [{ apiKey: [] }],
   components: {
     securitySchemes: {

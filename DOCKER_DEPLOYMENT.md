@@ -14,7 +14,7 @@ This guide explains how to build and run SecondPage.ai as a fully self-contained
 Copy the example environment file and customize it:
 
 ```bash
-cp env.example.txt .env
+cp .env.example .env
 ```
 
 Edit `.env` with your preferred values:

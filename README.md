@@ -2,22 +2,21 @@
 
 **Search Beyond The First Page**
 
-SecondPage.ai aggregates search results from multiple pages across Google, Bing, DuckduckGo and Brace, intelligently ranks them, removes duplicates, and surfaces hidden gems otherwise missed by SEO.
+SecondPage.ai aggregates search results from multiple pages across Bing, DuckDuckGo, Brave, and Google, intelligently ranks them, removes duplicates, and surfaces hidden gems buried beyond page one.
 
-Skip the SEO manipulation that puts the pages with the engine's own ads on top.
+Skip the SEO manipulation that puts the pages with the engine's own ads on top. Search Engine Optimization optimizes, after all, for the search engines.
 
-Search Engine Optimization optimizes, afterall, for the search engines.
+**Contributions welcome! Pull requests and suggestions encouraged.**
 
 ![SecondPage.ai](https://img.shields.io/badge/status-active-success.svg)
-![License](https://img.shields.io/badge/license-proprietary-blue.svg)
 
 ## Features
 
-- **Multi-Engine Aggregation**: Simultaneously search across Google and Bing
+- **Multi-Engine Aggregation**: Simultaneously search across Bing, DuckDuckGo, Brave, and Google
 - **Configurable Page Selection**: Choose specific pages (2-10) from each search engine
 - **Smart Ranking Algorithm**: Uses Borda count and frequency analysis
 - **Duplicate Detection**: Automatically identifies and removes duplicate results
-- **Real Search Results**: HTTP-based scraping for authentic search data
+- **REST API**: OpenAPI 3.0 spec at `/api-v1/openapi.json`
 - **Modern UI**: Clean, responsive interface with real-time search
 - **Docker Ready**: Fully containerized with database included
 
@@ -25,247 +24,147 @@ Search Engine Optimization optimizes, afterall, for the search engines.
 
 ### Using Docker (Recommended)
 
-1. **Clone the repository**
-   ```bash
-   git clone <repository-url>
-   cd secondpage-ai
-   ```
+```bash
+git clone https://github.com/nicholasgriffintn/secondpage.ai.git
+cd secondpage.ai
+cp .env.example .env
+# Edit .env with your settings (at minimum, set passwords and BRAVE_API_KEY)
+docker-compose up -d
+```
 
-2. **Create environment file**
-   ```bash
-   cp env.example.txt .env
-   # Edit .env with your settings
-   ```
-
-3. **Start with Docker Compose**
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Access the application**
-   ```
-   http://localhost:3000
-   ```
-
-That's it! The application and database are now running.
+Open http://localhost:3000 — the application and database are now running.
 
 ### Development Setup
 
-1. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
-
-2. **Set up database**
-   - Create a MySQL database
-   - Update `DATABASE_URL` in your environment
-
-3. **Push database schema**
-   ```bash
-   pnpm db:push
-   ```
-
-4. **Start development server**
-   ```bash
-   pnpm dev
-   ```
+```bash
+pnpm install
+# Create a MySQL database, then set DATABASE_URL in .env
+pnpm db:push
+pnpm dev
+```
 
 ## How It Works
 
 ### 1. Multi-Engine Aggregation
 
-SecondPage.ai searches across Google and Bing simultaneously, collecting results from pages 2-10 (configurable) to give you comprehensive coverage beyond the first page.
+SecondPage.ai searches across multiple engines simultaneously, collecting results from pages 2-10 (configurable) to surface content beyond the first page.
 
 ### 2. Smart Ranking Algorithm
 
-Results are ranked using a **Borda count** algorithm combined with appearance frequency analysis:
+Results are ranked using a **Borda count** algorithm combined with appearance frequency:
 
 - **Base Score**: `(Total Results - Position + 1)`
 - **Frequency Bonus**: `(Appearances - 1) × 5`
-- **Final Score**: `Base Score + Frequency Bonus`
 
-Results appearing in multiple search engines get bonus points, indicating higher relevance.
+Results appearing in multiple engines get bonus points, indicating higher relevance.
 
 ### 3. Duplicate Detection
 
-Before ranking, duplicates are identified using:
-- **URL Normalization**: Strips protocols, www, trailing slashes, and query parameters
-- **Title Similarity**: Uses string similarity algorithm (85% threshold)
-- **Merge Strategy**: Keeps highest-scoring version and combines appearance counts
+Duplicates are identified using URL normalization and title similarity (85% threshold), then merged to combine appearance counts.
 
 ## Architecture
 
-### Tech Stack
-
-- **Frontend**: React 19, Tailwind CSS 4, shadcn/ui
-- **Backend**: Node.js 22, Express 4, tRPC 11
-- **Database**: MySQL 8.0
-- **Search**: HTTP scraping with axios + cheerio
-- **Deployment**: Docker + Docker Compose
-
-### Project Structure
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, Tailwind CSS 4, shadcn/ui |
+| Backend | Node.js 22, Express 4, tRPC 11 |
+| Database | MySQL 8.0 (Drizzle ORM) |
+| Search | Brave API, HTTP scraping (axios + cheerio) |
+| Deployment | Docker, AWS App Runner |
 
 ```
 secondpage-ai/
-├── client/          # React frontend
-│   ├── src/
-│   │   ├── pages/   # Page components
-│   │   ├── components/  # Reusable UI components
-│   │   └── lib/     # tRPC client
-├── server/          # Express backend
-│   ├── services/    # Search scraping and ranking
-│   ├── routers.ts   # tRPC API routes
-│   └── db.ts        # Database helpers
-├── drizzle/         # Database schema
-├── docker-compose.yml  # Docker orchestration
-├── Dockerfile       # Application container
-└── init-db.sql      # Database initialization
+├── client/              # React frontend
+│   └── src/
+│       ├── pages/       # Page components (Home, Search, About)
+│       ├── components/  # UI components (shadcn/ui)
+│       └── lib/         # tRPC client, utilities
+├── server/              # Express backend
+│   ├── _core/           # Server setup, context, env
+│   ├── services/        # Search scraping, ranking, orchestration
+│   ├── routers.ts       # tRPC API routes
+│   ├── apiV1.ts         # REST API v1 + OpenAPI spec
+│   └── db.ts            # Database helpers
+├── drizzle/             # Database schema and migrations
+├── shared/              # Shared types between client/server
+├── docker-compose.yml
+├── Dockerfile
+└── init-db.sql
+```
+
+## REST API (v1)
+
+All endpoints require `X-API-Key` header except the OpenAPI spec.
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api-v1/openapi.json` | OpenAPI 3.0 specification |
+| POST | `/api-v1/search` | Execute a search |
+| GET | `/api-v1/search/{id}` | Fetch previous search by ID |
+| GET | `/api-v1/engines` | List available search engines |
+
+### Example
+
+```bash
+curl -X POST https://secondpage.ai/api-v1/search \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your_api_key" \
+  -d '{"query": "machine learning", "engines": ["bing", "brave"]}'
 ```
 
 ## Configuration
 
-### Search Provider
+### Search Engines
 
-SecondPage.ai supports two search backends:
-
-**HTTP Scraper (Default - Real Results)**
-```env
-SEARCH_PROVIDER=http
-```
-- Real search results from Google and Bing
-- Reliable and Docker-friendly
-- May be rate-limited
-
-**LLM Generator (Demo/Testing)**
-```env
-SEARCH_PROVIDER=llm
-```
-- AI-generated search results
-- Faster, no rate limiting
-- Good for testing
+| Engine | Type | Setup |
+|--------|------|-------|
+| Brave | API | Set `BRAVE_API_KEY` ([get free key](https://api.search.brave.com/)) |
+| Google | API | Set `GOOGLE_API_KEY` + `GOOGLE_CSE_ID` |
+| Bing | Scraping | Works out of the box |
+| DuckDuckGo | Scraping | Works out of the box (may be blocked from datacenter IPs) |
 
 ### Environment Variables
 
-See `env.example.txt` for all available configuration options.
+See `.env.example` for all options. Key variables:
 
-## Documentation
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | MySQL connection string |
+| `SEARCH_PROVIDER` | `http` (real results) or `llm` (demo/testing) |
+| `BRAVE_API_KEY` | Brave Search API key |
+| `API_KEY` | Key for REST API v1 authentication |
+| `CANONICAL_HOST` | Hostname for redirect (e.g., `secondpage.ai`) |
 
-- [Docker Deployment Guide](DOCKER_DEPLOYMENT.md) - Complete Docker setup and production deployment
-- [Search Provider Configuration](SEARCH_PROVIDER_CONFIG.md) - How to switch between search backends
-
-## API
-
-### Search Endpoint
-
-```typescript
-// Execute search
-trpc.search.execute.useMutation({
-  query: "machine learning",
-  engineConfigs: [
-    { engine: "google", pages: [2, 3] },
-    { engine: "bing", pages: [2, 3] }
-  ]
-})
-```
-
-### Response Format
-
-```typescript
-{
-  searchId: string;
-  query: string;
-  results: Array<{
-    title: string;
-    url: string;
-    snippet: string;
-    sourceEngine: string;
-    originalPosition: number;
-    originalPage: number;
-    finalScore: number;
-    appearances: number;
-  }>;
-  totalResults: number;
-  uniqueResults: number;
-  cached: boolean;
-}
-```
-
-## Development
-
-### Available Scripts
+## Development Scripts
 
 ```bash
-pnpm dev          # Start development server
-pnpm build        # Build for production
-pnpm start        # Start production server
-pnpm db:push      # Push database schema changes
-pnpm lint         # Run linter
-pnpm type-check   # Run TypeScript type checking
-```
-
-### Database Management
-
-```bash
-# Push schema changes
-pnpm db:push
-
-# Generate migrations
-pnpm db:generate
-
-# View database studio
-pnpm db:studio
+pnpm dev       # Start development server with HMR
+pnpm build     # Build for production (vite + esbuild)
+pnpm start     # Start production server
+pnpm check     # TypeScript type checking
+pnpm test      # Run tests
+pnpm db:push   # Generate and run database migrations
 ```
 
 ## Production Deployment
 
-See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for detailed production deployment instructions, including:
-
-- Security best practices
-- Nginx reverse proxy setup
-- SSL/TLS configuration
-- Automatic backups
-- Resource limits
-- Monitoring
+See [DOCKER_DEPLOYMENT.md](DOCKER_DEPLOYMENT.md) for Docker-based production deployment with nginx, TLS, backups, and monitoring.
 
 ## Troubleshooting
 
-### Search Not Working
+**Search returning empty results?**
+- Ensure outbound internet access from the server
+- Check `BRAVE_API_KEY` is set for Brave engine
+- Bing/DDG scraping may be blocked from datacenter IPs
 
-1. Check `SEARCH_PROVIDER` environment variable
-2. For `http` provider, ensure outbound internet access
-3. Check logs for rate limiting errors
-
-### Database Connection Issues
-
-1. Verify `DATABASE_URL` is correct
-2. Ensure database is running and accessible
-3. Check database logs
-
-### Docker Issues
-
-```bash
-# View logs
-docker-compose logs -f
-
-# Restart services
-docker-compose restart
-
-# Complete reset
-docker-compose down -v
-docker-compose up -d
-```
+**Database connection errors?**
+- Verify `DATABASE_URL` format: `mysql://user:pass@host:3306/dbname`
+- Ensure MySQL is running and accessible
 
 ## License
 
-© 2025 Zero Shot Laboratories, Inc. All rights reserved.
-
-This is proprietary software. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
-
-## Support
-
-For issues and questions, please contact support or open an issue on the project repository.
+MIT License — see [LICENSE](LICENSE) for details.
 
 ---
 
-**Built with ❤️ by Zero Shot Laboratories**
-
+**Built by [Zero Shot Laboratories](https://zsl.ai)**

@@ -29,11 +29,21 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 
 async function startServer() {
   const app = express();
+  app.set("trust proxy", true);
   const server = createServer(app);
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
-  // Health check endpoint for Docker/load balancers
+  // Health check endpoint for Docker/load balancers (before redirect so it always responds)
   app.get("/api/health", (_req, res) => res.json({ ok: true }));
+  // Canonical domain redirect: www and apprunner URL → secondpage.ai
+  const CANONICAL_HOST = process.env.CANONICAL_HOST || "";
+  app.use((req, res, next) => {
+    const host = req.hostname;
+    if (CANONICAL_HOST && host !== CANONICAL_HOST) {
+      return res.redirect(301, `https://${CANONICAL_HOST}${req.originalUrl}`);
+    }
+    next();
+  });
   // REST API v1
   registerApiRoutes(app);
   // tRPC API (used by the web UI)
